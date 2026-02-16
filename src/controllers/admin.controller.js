@@ -2,7 +2,6 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { Ticket } from "../models/ticket.model.js";
 import { Agent } from "../models/agent.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import mongoose from "mongoose";
 
 const getAgentStats = asyncHandler(async (req, res) => {
   const stats = await Agent.aggregate([
@@ -30,7 +29,6 @@ const getAgentStats = asyncHandler(async (req, res) => {
             },
           },
         },
-        // Basic resolution time calculation logic if resolvedAt and createdAt exist
         averageResolutionTime: {
           $avg: {
             $map: {
@@ -55,4 +53,37 @@ const getAgentStats = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, stats, "Agent stats fetched successfully"));
 });
 
-export { getAgentStats };
+const getDashboardStats = asyncHandler(async (req, res) => {
+  const totalTickets = await Ticket.countDocuments();
+  const openTickets = await Ticket.countDocuments({ status: "Open" });
+  const inProgress = await Ticket.countDocuments({ status: "In Progress" });
+  const closed = await Ticket.countDocuments({
+    status: { $in: ["Closed", "Resolved"] },
+  });
+
+  // Stats for the logged-in agent
+  const assignedToMe = await Ticket.countDocuments({
+    assignedTo: req.user._id,
+  });
+  const closedByMe = await Ticket.countDocuments({
+    closedBy: req.user._id,
+    status: { $in: ["Closed", "Resolved"] },
+  });
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        totalTickets,
+        openTickets,
+        inProgress,
+        closed,
+        assignedToMe,
+        closedByMe,
+      },
+      "Dashboard stats fetched successfully",
+    ),
+  );
+});
+
+export { getAgentStats, getDashboardStats };

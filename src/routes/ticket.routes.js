@@ -7,6 +7,7 @@ import {
   updateTicketStatus,
   replyToTicket,
   addInternalNote,
+  updateTicketCategory,
 } from "../controllers/ticket.controller.js";
 import { verifyJWT } from "../middleware/auth.middleware.js";
 import { authorize } from "../middleware/role.middleware.js";
@@ -56,5 +57,9 @@ router
 router
   .route("/:id/internal-note")
   .post(authorize("admin", "agent"), addInternalNote);
+
+router
+  .route("/:id/category")
+  .patch(authorize("admin", "agent"), updateTicketCategory);
 
 export default router;

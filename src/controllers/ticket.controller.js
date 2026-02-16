@@ -245,6 +245,31 @@ const addInternalNote = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, ticket, "Internal note added successfully"));
 });
 
+const updateTicketCategory = asyncHandler(async (req, res) => {
+  const { category } = req.body;
+  const ticket = await Ticket.findById(req.params.id);
+
+  if (!ticket) {
+    throw new ApiError(404, "Ticket not found");
+  }
+
+  const previousCategory = ticket.category;
+  ticket.category = category;
+
+  ticket.activityLogs.push({
+    action: "CATEGORY_CHANGED",
+    performedBy: req.user._id,
+    previousValue: previousCategory,
+    newValue: category,
+  });
+
+  await ticket.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, ticket, "Ticket category updated successfully"));
+});
+
 export {
   createTicket,
   getAllTickets,
@@ -253,4 +278,5 @@ export {
   updateTicketStatus,
   replyToTicket,
   addInternalNote,
+  updateTicketCategory,
 };

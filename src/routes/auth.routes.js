@@ -17,22 +17,24 @@ router.route("/login").post(validate(loginSchema), loginAgent);
 
 // Only admins can register new agents
 // Bypasses auth if no agents exist (to create the first admin)
-router.route("/register").post(async (req, res, next) => {
+// Custom middleware for conditional registration
+const conditionalRegisterMiddleware = async (req, res, next) => {
   const agentCount = await Agent.countDocuments();
   if (agentCount === 0) {
-    return registerAgent(req, res, next);
+    // Allow first admin registration without auth
+    return next();
   }
-  // This nested callback structure is a workaround for conditional middleware.
-  // A cleaner approach would be to create a custom middleware that handles the conditional logic.
-  return verifyJWT(req, res, () =>
-    authorize("admin")(req, res, () =>
-      validate(agentRegisterSchema)(req, res, () =>
-        registerAgent(req, res, next),
-      ),
-    ),
-  );
-});
-// Re-implementing with cleaner middleware chain is better, but for now I'll just use a conditional one.
+  // Require admin auth and validation for subsequent registrations
+  verifyJWT(req, res, (err) => {
+    if (err) return next(err);
+    authorize("admin")(req, res, (err) => {
+      if (err) return next(err);
+      validate(agentRegisterSchema)(req, res, next);
+    });
+  });
+};
+
+router.route("/register").post(conditionalRegisterMiddleware, registerAgent);
 
 router.route("/me").get(verifyJWT, getMe);
 

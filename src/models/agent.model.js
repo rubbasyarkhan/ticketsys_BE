@@ -33,6 +33,13 @@ const agentSchema = new Schema(
       type: Number,
       default: 0,
     },
+    phoneNumber: {
+      type: String,
+      trim: true,
+    },
+    avatar: {
+      type: String, // URL to profile picture
+    },
   },
   {
     timestamps: true,
